@@ -1,9 +1,11 @@
 A web search server for ParlAI, including Blenderbot2.
 
+
+*Querying the server:*
 ![Querying the server](imgs/blenderbot2_demo.png)
-Querying the server
+
+*The server reacting correctly:*
 ![The server reacting appropriately](imgs/server_demo.png)
-The server reacting correctly
 
 
 - Uses `html2text` to strip the markup out of the page.
