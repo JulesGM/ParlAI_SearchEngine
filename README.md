@@ -1,5 +1,9 @@
 A web search server for ParlAI, including Blenderbot2.
 
+- Uses the `google` module to query Google for urls. 
+- Uses `html2text` to strip the markup out of the page.
+- Uses `beautifulsoup4` to parse the title.
+
 ### Quick Start:
 
 ```bash
