@@ -13,13 +13,14 @@ To be able to train, one would just have to for example pay for Google Cloud or 
 ### Quick Start:
 
 ```bash
-python search_server.py serve --host=0.0.0.0:8080
+python search_server.py serve --host 0.0.0.0:8080
 ```
 
 You can then for example start Blenderbot2 passing the server's address and ip as arguments:
 ```
-parlai --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server=0.0.0.0:8080
+parlai --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
 ```
+
 
 ### Testing the server:
 You need to already be running a server by calling serve on the same hostname and ip. 
@@ -27,7 +28,7 @@ This will create a parlai.agents.rag.retrieve_api.SearchEngineRetriever and try 
 and send a query, and parse the answer.
 
 ```bash
-python search_server.py test_server --host=0.0.0.0:8080
+python search_server.py test_server --host 0.0.0.0:8080
 ```
 
 ### Testing the parser:
@@ -57,8 +58,14 @@ print = rich.print
 _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8080
 
+def _parse_host(host):
+    splitted = host.split(":")
+    hostname = splitted[0]
+    port = splitted[1] if len(splitted) > 1 else _DEFAULT_PORT
+    return hostname, port
 
-def get_content(url):
+
+def _get_content(url):
     resp = requests.get(url)
     page = resp.content
 
@@ -102,7 +109,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         urls = self.search(q=q, n=n)
 
         output = json.dumps(
-            dict(response=[get_content(url) for url in urls])
+            dict(response=[_get_content(url) for url in urls])
         ).encode()
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -123,15 +130,19 @@ class GoogleSearchServer(SearchABC):
     
 
 class Application:
-    def serve(self, host=_DEFAULT_HOST, port=_DEFAULT_PORT):
+    def serve(self, host=_DEFAULT_HOST):
+        host, port = _parse_host(host)
+
         with http.server.ThreadingHTTPServer((host, port), GoogleSearchServer) as server:
             print("Serving forever.")
             server.serve_forever()
 
     def test_parser(self, url):
-        print(get_content(url))
+        print(_get_content(url))
 
-    def test_server(self, query, n, host=_DEFAULT_HOST, port=_DEFAULT_PORT):
+    def test_server(self, query, n, host=_DEFAULT_HOST):
+        host, port = _parse_host(host)
+        
         print(f"Query: `{query}`")
         print(f"n: {n}")
 
