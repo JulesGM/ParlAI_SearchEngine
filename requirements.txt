@@ -1,0 +1,7 @@
+bs4
+fire
+html2text
+googlesearch
+parlai
+rich
+requests
