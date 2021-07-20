@@ -20,12 +20,12 @@ Using the `googlesearch` module is very slow because it parses webpages instead 
 To be able to train, one would just have to for example pay for Google Cloud or Microsoft Azure's search services, and derive the Search class to query them.
 
 ### Quick Start:
-
+Run this command in one terminal tab:
 ```bash
 python search_server.py serve --host 0.0.0.0:8080
 ```
 
-You can then for example start Blenderbot2 passing the server's address and ip as arguments:
+and then for example start Blenderbot2 in a different terminal tab:
 ```
 parlai --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
 ```
