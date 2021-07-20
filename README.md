@@ -1,8 +1,13 @@
 A web search server for ParlAI, including Blenderbot2.
 
-- Uses the `google` module to query Google for urls. 
 - Uses `html2text` to strip the markup out of the page.
 - Uses `beautifulsoup4` to parse the title.
+- Currently only uses the `googlesearch` module to query Google for urls, but is coded
+in a modular / search engine agnostic way to allow very easily add new search engine support.
+
+Using the `googlesearch` module is very slow because it parses webpages instead of querying webservices. This is fine for playing with the model, but makes that searcher unusable for training or large scale inference purposes.
+
+To be able to train, one would just have to for example pay for Google Cloud or Microsoft Azure's search services, and derive the Search class to query them.
 
 ### Quick Start:
 
