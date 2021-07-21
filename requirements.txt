@@ -1,7 +1,9 @@
 bs4
 fire
 html2text
+html5lib
 google
+html5lib
 parlai
 rich
 requests
