@@ -33,10 +33,10 @@ def _get_content(url: str) -> Dict[str, str]:
     resp = requests.get(url)
     try:
         resp = requests.get(url)
-        page = resp.content
     except Exception as e:
-        print(e)
-        return {"content": ""}
+        return None
+    else:
+        page = resp.content
 
 
     soup = bs4.BeautifulSoup(page, features="lxml")
@@ -54,7 +54,7 @@ def _get_content(url: str) -> Dict[str, str]:
     text = text_maker.handle(page.decode("utf-8", errors="ignore"))
     output_dict = dict(url=url, content=text)
     if title:
-        output_dict["title"] = title
+        output_dict["title"] = title.replace("\n", "").replace("\r", "")
         print(
             f"title: `{rich.markup.escape(output_dict['title'])}`",
             f"url: {rich.markup.escape(output_dict['url'])}",
@@ -84,10 +84,13 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         q = parsed["q"]
 
         urls = self.search(q=q, n=n)
+        content = []
+        for url in urls:
+            maybe_content = _get_content(url)
+            if maybe_content:
+                content.append(maybe_content)
 
-        output = json.dumps(
-            dict(response=[_get_content(url) for url in urls])
-        ).encode()
+        output = json.dumps(dict(response=content)).encode()
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.send_header("Content-Length", len(output))
