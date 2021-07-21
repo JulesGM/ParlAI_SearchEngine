@@ -25,10 +25,18 @@ Run this command in one terminal tab:
 python search_server.py serve --host 0.0.0.0:8080
 ```
 
-and then for example start Blenderbot2 in a different terminal tab:
+[Optional] You can then test the server with 
+```
+curl -X POST "http://0.0.0.0:8080" -d "q=baseball&n=1"
+```
+
+Then for example start Blenderbot2 in a different terminal tab:
 ```
 python -m parlai interactive --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
 ```
+
+### Colab
+There is a jupyter notebook. Just run it. However it only works in instances with large memories. 
 
 ### Testing the server:
 You need to already be running a server by calling serve on the same hostname and ip. 
