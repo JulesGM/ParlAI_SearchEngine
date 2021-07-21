@@ -1,7 +1,7 @@
 bs4
 fire
 html2text
-googlesearch
+google
 parlai
 rich
 requests
