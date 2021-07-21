@@ -30,6 +30,28 @@ and then for example start Blenderbot2 in a different terminal tab:
 python -m parlai interactive --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
 ```
 
+### Colab:
+
+To run in colab, start the server first in a cell with the following code:
+
+```
+import multiprocess
+import subprocess
+PATH_TO_SEARCH_SERVER = "./search_server.py --host 0.0.0.0:8080"
+def start_server():
+    subprocess.check_call(f"python {PATH_TO_SEARCH_SERVER} serve" , shell=True)
+multiprocess.Process(target=start_server).start()
+```
+
+Change `PATH_TO_SEARCH_SERVER` as needed to point to the script.
+
+Then start Blenderbot 2.0 as you normally would, by running the following in a cell:
+
+```
+!python -m parlai interactive --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
+```
+
+
 ### Testing the server:
 You need to already be running a server by calling serve on the same hostname and ip. 
 This will create a parlai.agents.rag.retrieve_api.SearchEngineRetriever and try to connect 
