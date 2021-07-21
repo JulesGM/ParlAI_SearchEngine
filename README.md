@@ -27,7 +27,7 @@ python search_server.py serve --host 0.0.0.0:8080
 
 and then for example start Blenderbot2 in a different terminal tab:
 ```
-parlai --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
+python -m parlai interactive --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
 ```
 
 ### Testing the server:
