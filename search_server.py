@@ -41,6 +41,7 @@ python search_server.py test_parser www.some_url_of_your_choice.com/
 """
 import http.server
 import json
+from typing import *
 import urllib.parse
 
 import bs4
@@ -58,21 +59,27 @@ print = rich.print
 _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8080
 
-def _parse_host(host):
+def _parse_host(host: str) -> Tuple[str, str]:
     splitted = host.split(":")
     hostname = splitted[0]
     port = splitted[1] if len(splitted) > 1 else _DEFAULT_PORT
     return hostname, port
 
 
-def _get_content(url):
+def _get_content(url: str) -> Dict[str, str]:
     resp = requests.get(url)
-    page = resp.content
+    try:
+        resp = requests.get(url)
+        page = resp.content
+    except Exception as e:
+        print(e)
+        return {"content": ""}
+
 
     soup = bs4.BeautifulSoup(page, features="lxml")
     pre_rendered = soup.find("title")
     title = (
-        pre_rendered.renderContents().decode() if pre_rendered else "No Title"
+        pre_rendered.renderContents().decode() if pre_rendered else None
     )
 
     text_maker = html2text.HTML2Text()
@@ -82,7 +89,9 @@ def _get_content(url):
     text_maker.ignore_emphasis = True
     text_maker.single_line = True
     text = text_maker.handle(page.decode("utf-8", errors="ignore"))
-    output_dict = dict(url=url, title=title, content=text)
+    output_dict = dict(url=url, content=text)
+    if title:
+        output_dict["title"] = title
     print(
         f"title: `{rich.markup.escape(output_dict['title'])}`",
         f"url: {rich.markup.escape(output_dict['url'])}",
@@ -117,7 +126,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(output)
 
-    def search(self, q, n):
+    def search(self, q: str, n: int):
         return NotImplemented(
             "Search is an abstract base class, not meant to be directly instantiated. "
             "You should instantiate a derived class like GoogleSearch."
@@ -125,12 +134,12 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
     
 
 class GoogleSearchServer(SearchABC):
-    def search(self, q, n):
+    def search(self, q: str, n: int):
         return googlesearch.search(q, num=n, stop=n)
     
 
 class Application:
-    def serve(self, host=_DEFAULT_HOST):
+    def serve(self, host: str = _DEFAULT_HOST) -> NoReturn:
         host, port = _parse_host(host)
 
         with http.server.ThreadingHTTPServer((host, port), GoogleSearchServer) as server:
