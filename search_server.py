@@ -23,14 +23,15 @@ _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8080
 _FAILURE_PROTECTION_FACTOR = 1.4
 
-def _parse_host(host: str) -> Tuple[str, str]:
+def _parse_host(host: str) -> Tuple[str, int]:
     splitted = host.split(":")
     hostname = splitted[0]
     port = splitted[1] if len(splitted) > 1 else _DEFAULT_PORT
-    return hostname, port
+    return hostname, int(port)
 
 
-def _get_content(url: str) -> Dict[str, str]:
+def _get_and_parse(url: str) -> Dict[str, str]:
+
     resp = requests.get(url)
     try:
         resp = requests.get(url)
@@ -39,32 +40,40 @@ def _get_content(url: str) -> Dict[str, str]:
     else:
         page = resp.content
 
-
+    ###########################################################################
+    # Prepare the title
+    ###########################################################################
+    output_dict = dict(title="", content="", url=url)
     soup = bs4.BeautifulSoup(page, features="lxml")
     pre_rendered = soup.find("title")
-    title = (
+    output_dict["title"] = (
         pre_rendered.renderContents().decode() if pre_rendered else None
     )
+    output_dict["title"] = output_dict["title"].replace("\n", "").replace("\r", "")
 
+    ###########################################################################
+    # Prepare the content
+    ###########################################################################
     text_maker = html2text.HTML2Text()
     text_maker.ignore_links = True
     text_maker.ignore_tables = True
     text_maker.ignore_images = True
     text_maker.ignore_emphasis = True
     text_maker.single_line = True
-    text = text_maker.handle(page.decode("utf-8", errors="ignore"))
-    output_dict = dict(url=url, content=text)
-    if title:
-        output_dict["title"] = title.replace("\n", "").replace("\r", "")
-        print(
-            f"title: `{rich.markup.escape(output_dict['title'])}`",
-            f"url: {rich.markup.escape(output_dict['url'])}",
-        )
-    else:
-        print(
-            f"title: {None}",
-            f"url: {rich.markup.escape(output_dict['url'])}",
-        )
+    output_dict["content"]  = text_maker.handle(page.decode("utf-8", errors="ignore"))
+    
+    ###########################################################################
+    # Log it
+    ###########################################################################
+    title_str = (f"`{rich.markup.escape(output_dict['title'])}`" 
+        if output_dict["title"] else '<No Title>'
+    )
+    print(
+        f"title: {title_str}",
+        f"url: {rich.markup.escape(output_dict['url'])}",
+        f"content: {len(output_dict['content'])}"
+    )
+
     return output_dict
 
 
@@ -88,7 +97,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         for url in urls:
             if len(content) >= n:
                 break
-            maybe_content = _get_content(url)
+            maybe_content = _get_and_parse(url)
             if maybe_content:
                 content.append(maybe_content)
 
@@ -117,12 +126,12 @@ class Application:
     def serve(self, host: str = _DEFAULT_HOST) -> NoReturn:
         host, port = _parse_host(host)
 
-        with http.server.ThreadingHTTPServer((host, port), GoogleSearchServer) as server:
+        with http.server.ThreadingHTTPServer((host, int(port)), GoogleSearchServer) as server:
             print("Serving forever.")
             server.serve_forever()
 
     def test_parser(self, url):
-        print(_get_content(url))
+        print(_get_and_parse(url))
 
     def test_server(self, query, n, host=_DEFAULT_HOST):
         host, port = _parse_host(host)
