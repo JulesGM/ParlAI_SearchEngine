@@ -19,7 +19,7 @@ Using the `googlesearch` module is very slow because it parses webpages instead 
 
 To be able to train, one would just have to for example pay for Google Cloud or Microsoft Azure's search services, and derive the Search class to query them.
 
-### Quick Start:
+## Quick Start:
 
 First install the requirements:
 ```bash
@@ -41,10 +41,10 @@ Then for example start Blenderbot2 in a different terminal tab:
 python -m parlai interactive --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
 ```
 
-### Colab
+## Colab
 There is a jupyter notebook. Just run it. However it only works in instances with large memories. 
 
-### Testing the server:
+## Testing the server:
 You need to already be running a server by calling serve on the same hostname and ip. 
 This will create a parlai.agents.rag.retrieve_api.SearchEngineRetriever and try to connect 
 and send a query, and parse the answer.
@@ -53,7 +53,7 @@ and send a query, and parse the answer.
 python search_server.py test_server --host 0.0.0.0:8080
 ```
 
-### Testing the parser:
+## Testing the parser:
 
 ```bash
 python search_server.py test_parser www.some_url_of_your_choice.com/
