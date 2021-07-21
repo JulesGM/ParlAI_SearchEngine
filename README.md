@@ -43,7 +43,7 @@ python -m parlai interactive --model-file zoo:blenderbot2/blenderbot2_3B/model -
 ```
 
 ## Colab
-There is a jupyter notebook. Just run it. However it only works in instances with large memories. 
+There is a jupyter notebook. Just run it. Some instances run out of memory, some don't.
 
 ## Testing the server:
 You need to already be running a server by calling serve on the same hostname and ip. 
