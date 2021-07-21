@@ -20,6 +20,12 @@ Using the `googlesearch` module is very slow because it parses webpages instead 
 To be able to train, one would just have to for example pay for Google Cloud or Microsoft Azure's search services, and derive the Search class to query them.
 
 ### Quick Start:
+
+First install the requirements:
+```bash
+pip install -r requirements.txt
+```
+
 Run this command in one terminal tab:
 ```bash
 python search_server.py serve --host 0.0.0.0:8080
