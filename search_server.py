@@ -55,10 +55,15 @@ def _get_content(url: str) -> Dict[str, str]:
     output_dict = dict(url=url, content=text)
     if title:
         output_dict["title"] = title
-    print(
-        f"title: `{rich.markup.escape(output_dict['title'])}`",
-        f"url: {rich.markup.escape(output_dict['url'])}",
-    )
+        print(
+            f"title: `{rich.markup.escape(output_dict['title'])}`",
+            f"url: {rich.markup.escape(output_dict['url'])}",
+        )
+    else:
+        print(
+            f"title: {None}",
+            f"url: {rich.markup.escape(output_dict['url'])}",
+        )
     return output_dict
 
 
