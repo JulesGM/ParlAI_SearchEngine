@@ -21,6 +21,7 @@ print = rich.print
 
 _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8080
+_FAILURE_PROTECTION_FACTOR = 1.4
 
 def _parse_host(host: str) -> Tuple[str, str]:
     splitted = host.split(":")
@@ -72,9 +73,8 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         content_length = int(self.headers["Content-Length"])
         post_data = self.rfile.read(content_length)
 
-        # query = urllib.parse.urlparse(post_data).query
         parsed = urllib.parse.parse_qs(post_data)
-        for k, v in parsed.items():
+        for v in parsed.values():
             assert len(v) == 1, len(v)
 
         parsed = {k.decode(): v[0].decode() for k, v in parsed.items()}
@@ -83,12 +83,16 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         n = int(parsed["n"])
         q = parsed["q"]
 
-        urls = self.search(q=q, n=n)
+        urls = self.search(q=q, n=int(_FAILURE_PROTECTION_FACTOR * n))
         content = []
         for url in urls:
+            if len(content) >= n:
+                break
             maybe_content = _get_content(url)
             if maybe_content:
                 content.append(maybe_content)
+
+        content = content[:n]  # Redundant [:n]
 
         output = json.dumps(dict(response=content)).encode()
         self.send_response(200)
