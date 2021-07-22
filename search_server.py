@@ -82,13 +82,11 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         # Figure out the encoding
         if "charset=" in self.headers["Content-Type"]:
             charset = re.match(r".*charset=([\w_\-]+)\b.*", self.headers["Content-Type"]).group(1)
-            print(f"http header charset: {charset}")
         else:
             detector = chardet.UniversalDetector()
             detector.feed(post_data)
             detector.close()
             charset = detector.result["encoding"]
-            print(f"chardet method: {charset}")
 
         post_data = post_data.decode(charset)
         parsed = urllib.parse.parse_qs(post_data)
