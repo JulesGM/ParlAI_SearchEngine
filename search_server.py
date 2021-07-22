@@ -4,6 +4,7 @@ See README.md
 """
 import http.server
 import json
+import re
 from typing import *
 import urllib.parse
 
@@ -73,18 +74,22 @@ def _get_and_parse(url: str) -> Dict[str, str]:
 class SearchABC(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
-        print(self.headers)
-        print(vars(self))
-        detector = chardet.UniversalDetector()
-        post_data = self.rfile.read(content_length)
-        detector.feed(post_data)
-        detector.close()
-        post_data = post_data.decode(detector.result["encoding"])
-        print(detector.result)
+        if "charset=" in self.headers["Content-Type"]:
+            charset = re.match(r".*charset=([\w_\-]+)\b.*").group(1)
+            print(f"http header charset: {charset}")
+        else:
+            detector = chardet.UniversalDetector()
+            post_data = self.rfile.read(content_length)
+            detector.feed(post_data)
+            detector.close()
+            charset = detector.result["encoding"]
+            print(f"chardet method: {charset}")
+
+        post_data = post_data.decode(charset)
         parsed = urllib.parse.parse_qs(post_data)
+
         for v in parsed.values():
             assert len(v) == 1, len(v)
-
         parsed = {k: v[0] for k, v in parsed.items()}
 
         print(f"\n[bold]Received query:[/] {parsed}")
