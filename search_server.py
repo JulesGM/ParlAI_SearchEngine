@@ -85,7 +85,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
 
         parsed = {k.decode(): v[0].decode() for k, v in parsed.items()}
 
-        print(f"[bold]Received query:[/] {parsed}")
+        print(f"\n[bold]Received query:[/] {parsed}")
         n = int(parsed["n"])
         q = parsed["q"]
 
@@ -121,7 +121,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                     else "<No Title>"
                 )
                 print(
-                    " > Result:",
+                    " [green]>[/] Result:",
                     f"Title: {title_str}",
                     f"url: {rich.markup.escape(maybe_content['url'])}",
                     f"Content: {len(maybe_content['content'])}",
