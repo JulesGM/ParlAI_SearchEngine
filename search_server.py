@@ -8,6 +8,7 @@ from typing import *
 import urllib.parse
 
 import bs4
+import chardet
 import fire
 import html2text
 import googlesearch
@@ -43,7 +44,8 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     except Exception:
         return None
     else:
-        page = resp.content.decode("utf-8", "ignore")
+        resp.encoding = resp.apparent_encoding
+        page = resp.text
 
     ###########################################################################
     # Prepare the title
