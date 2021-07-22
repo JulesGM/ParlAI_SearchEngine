@@ -62,18 +62,6 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     text_maker.single_line = True
     output_dict["content"]  = text_maker.handle(page.decode("utf-8", errors="ignore")).strip()
     
-    ###########################################################################
-    # Log it
-    ###########################################################################
-    title_str = (f"`{rich.markup.escape(output_dict['title'])}`" 
-        if output_dict["title"] else '<No Title>'
-    )
-    print(
-        f"title: {title_str}",
-        f"url: {rich.markup.escape(output_dict['url'])}",
-        f"content: {len(output_dict['content'])}"
-    )
-
     return output_dict
 
 
@@ -114,13 +102,24 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
             )
 
             if not any(reasons.values()):
+                ###########################################################################
+                # Log the entry
+                ###########################################################################
+                title_str = (f"`{rich.markup.escape(maybe_content['title'])}`" 
+                    if maybe_content["title"] else '<No Title>'
+                )
+                print(
+                    f"title: {title_str}",
+                    f"url: {rich.markup.escape(maybe_content['url'])}",
+                    f"content: {len(maybe_content['content'])}"
+                )
                 content_set.add(maybe_content["content"])
                 content.append(maybe_content)
             else:
                 reason_string = ', '.join({
                     reason_name for reason_name, whether_failed in reasons.items() if whether_failed
                 })
-                print(f"Excluded `{url}` because `{reason_string}`")
+                print(f" x Excluded because `{reason_string}`: `{url}`")
 
         content = content[:n]  # Redundant [:n]
 
