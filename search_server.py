@@ -38,15 +38,10 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     except requests.exceptions.RequestException as e:
         print(f"[!] {e} for url {url}")
         return None
-
-    try:
-        resp = requests.get(url)
-    except Exception:
-        return None
     else:
         resp.encoding = resp.apparent_encoding
         page = resp.text
-
+    
     ###########################################################################
     # Prepare the title
     ###########################################################################
@@ -54,8 +49,9 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     soup = bs4.BeautifulSoup(page, features="lxml")
     pre_rendered = soup.find("title")
     output_dict["title"] = (
-        pre_rendered.renderContents() if pre_rendered else ""
+        pre_rendered.renderContents().decode(resp.encoding) if pre_rendered else ""
     )
+    
     output_dict["title"] = (
         output_dict["title"].replace("\n", "").replace("\r", "")
     )
@@ -69,9 +65,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     text_maker.ignore_images = True
     text_maker.ignore_emphasis = True
     text_maker.single_line = True
-    output_dict["content"] = text_maker.handle(
-        page.decode("utf-8", errors="ignore")
-    ).strip()
+    output_dict["content"] = text_maker.handle(page).strip()
 
     return output_dict
 
