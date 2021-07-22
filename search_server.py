@@ -150,6 +150,9 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                     break
 
             else:
+                ###############################################################
+                # Log why it failed
+                ###############################################################
                 reason_string = ", ".join(
                     {
                         reason_name
@@ -159,8 +162,10 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                 )
                 print(f" x Excluding an URL because `{reason_string}`: `{url}`")
 
-        content = content[:n]  # Redundant [:n]
-
+        ###############################################################
+        # Prepare the answer and send it
+        ###############################################################
+        content = content[:n]  
         output = json.dumps(dict(response=content)).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-type", "text/html")
