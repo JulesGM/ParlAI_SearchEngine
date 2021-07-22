@@ -49,7 +49,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     soup = bs4.BeautifulSoup(page, features="lxml")
     pre_rendered = soup.find("title")
     output_dict["title"] = (
-        pre_rendered.renderContents().decode(resp.encoding) if pre_rendered else ""
+        pre_rendered.renderContents().decode() if pre_rendered else ""
     )
     
     output_dict["title"] = (
@@ -73,13 +73,12 @@ def _get_and_parse(url: str) -> Dict[str, str]:
 class SearchABC(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
-        post_data = self.rfile.read(content_length)
-
+        post_data = self.rfile.read(content_length).decode()
         parsed = urllib.parse.parse_qs(post_data)
         for v in parsed.values():
             assert len(v) == 1, len(v)
 
-        parsed = {k.decode(): v[0].decode() for k, v in parsed.items()}
+        parsed = {k: v[0] for k, v in parsed.items()}
 
         print(f"\n[bold]Received query:[/] {parsed}")
         n = int(parsed["n"])
