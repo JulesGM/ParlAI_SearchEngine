@@ -76,7 +76,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
 
         parsed = {k.decode(): v[0].decode() for k, v in parsed.items()}
 
-        print(f"parsed: {parsed}")
+        print(f"[bold]Received query:[/] {parsed}")
         n = int(parsed["n"])
         q = parsed["q"]
 
@@ -123,7 +123,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                     reason_name for reason_name, whether_failed in reasons.items() 
                     if whether_failed
                 })
-                print(f" x Excluded because `{reason_string}`: `{url}`")
+                print(f" x Excluding an URL because `{reason_string}`: `{url}`")
 
         content = content[:n]  # Redundant [:n]
 
