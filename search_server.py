@@ -60,7 +60,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     text_maker.ignore_images = True
     text_maker.ignore_emphasis = True
     text_maker.single_line = True
-    output_dict["content"]  = text_maker.handle(page.decode("utf-8", errors="ignore"))
+    output_dict["content"]  = text_maker.handle(page.decode("utf-8", errors="ignore")).strip()
     
     ###########################################################################
     # Log it
@@ -92,22 +92,37 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         n = int(parsed["n"])
         q = parsed["q"]
 
+        # Over query a little bit in case we find useless URLs
         urls = self.search(q=q, n=int(_FAILURE_PROTECTION_FACTOR * n))
         content = []
+        content_set = {}
         for url in urls:
             if len(content) >= n:
                 break
             maybe_content = _get_and_parse(url)
-            if maybe_content:
+            
+
+            reason_empty_response = maybe_content is None
+            reason_content_empty = (
+                maybe_content["content"] is None or len(maybe_content["content"]) == 0
+            )
+            reason_already_seen_content = maybe_content["content"] in content_set
+            reasons = dict(
+                reason_empty_response=reason_empty_response,
+                reason_content_empty=reason_content_empty,
+                reason_already_seen_content=reason_already_seen_content,
+            )
+
+            if not any(reasons.values()):
+                content_set.add(maybe_content["content"])
                 content.append(maybe_content)
+            else:
+                reason_string = ', '.join({
+                    reason_name for reason_name, whether_failed in reasons.items() if whether_failed
+                })
+                print(f"Excluded `{url}` because `{reason_string}`")
 
         content = content[:n]  # Redundant [:n]
-
-        for i, entry in enumerate(content):
-            for k, v in entry.items():
-                assert isinstance(k, str), type(k)
-                assert isinstance(v, str), type(k)
-                content[i][k] = v.encode("utf-8").decode("utf-8", "ignore")
 
         output = json.dumps(dict(response=content)).encode("utf-8")
         self.send_response(200)
