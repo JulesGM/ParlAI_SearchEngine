@@ -32,7 +32,12 @@ def _parse_host(host: str) -> Tuple[str, int]:
 
 def _get_and_parse(url: str) -> Dict[str, str]:
 
-    resp = requests.get(url)
+    try:
+        resp = requests.get(url)
+    except requests.exceptions.RequestException as e:
+        print(f"[!] {e} for url {url}")
+        return None
+
     try:
         resp = requests.get(url)
     except Exception:
