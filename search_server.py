@@ -95,7 +95,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         # Over query a little bit in case we find useless URLs
         urls = self.search(q=q, n=int(_FAILURE_PROTECTION_FACTOR * n))
         content = []
-        content_set = {}
+        content_set = set()
         for url in urls:
             if len(content) >= n:
                 break
