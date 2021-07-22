@@ -73,7 +73,14 @@ def _get_and_parse(url: str) -> Dict[str, str]:
 class SearchABC(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
-        post_data = self.rfile.read(content_length).decode()
+        print(self.headers)
+        print(vars(self))
+        detector = chardet.UniversalDetector()
+        post_data = self.rfile.read(content_length)
+        detector.feed(post_data)
+        detector.close()
+        post_data = post_data.decode(detector.result["encoding"])
+        print(detector.result)
         parsed = urllib.parse.parse_qs(post_data)
         for v in parsed.values():
             assert len(v) == 1, len(v)
