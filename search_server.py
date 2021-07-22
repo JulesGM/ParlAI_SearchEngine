@@ -40,6 +40,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     else:
         page = resp.content
 
+
     ###########################################################################
     # Prepare the title
     ###########################################################################
@@ -47,7 +48,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     soup = bs4.BeautifulSoup(page, features="lxml")
     pre_rendered = soup.find("title")
     output_dict["title"] = (
-        pre_rendered.renderContents().decode() if pre_rendered else None
+        pre_rendered.renderContents().decode() if pre_rendered else ""
     )
     output_dict["title"] = output_dict["title"].replace("\n", "").replace("\r", "")
 
