@@ -35,7 +35,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     resp = requests.get(url)
     try:
         resp = requests.get(url)
-    except Exception as e:
+    except Exception:
         return None
     else:
         page = resp.content
@@ -103,7 +103,13 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
 
         content = content[:n]  # Redundant [:n]
 
-        output = json.dumps(dict(response=content)).encode()
+        for i, entry in enumerate(content):
+            for k, v in entry.items():
+                assert isinstance(k, str), type(k)
+                assert isinstance(v, str), type(k)
+                content[i][k] = v.encode("utf-8").decode("utf-8", "ignore")
+
+        output = json.dumps(dict(response=content)).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.send_header("Content-Length", len(output))
