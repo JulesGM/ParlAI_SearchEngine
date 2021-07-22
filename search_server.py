@@ -40,7 +40,6 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     else:
         page = resp.content
 
-
     ###########################################################################
     # Prepare the title
     ###########################################################################
@@ -50,7 +49,9 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     output_dict["title"] = (
         pre_rendered.renderContents().decode() if pre_rendered else ""
     )
-    output_dict["title"] = output_dict["title"].replace("\n", "").replace("\r", "")
+    output_dict["title"] = (
+        output_dict["title"].replace("\n", "").replace("\r", "")
+    )
 
     ###########################################################################
     # Prepare the content
@@ -61,8 +62,10 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     text_maker.ignore_images = True
     text_maker.ignore_emphasis = True
     text_maker.single_line = True
-    output_dict["content"]  = text_maker.handle(page.decode("utf-8", errors="ignore")).strip()
-    
+    output_dict["content"] = text_maker.handle(
+        page.decode("utf-8", errors="ignore")
+    ).strip()
+
     return output_dict
 
 
@@ -88,13 +91,15 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
             if len(content) >= n:
                 break
             maybe_content = _get_and_parse(url)
-            
 
             reason_empty_response = maybe_content is None
             reason_content_empty = (
-                maybe_content["content"] is None or len(maybe_content["content"]) == 0
+                maybe_content["content"] is None
+                or len(maybe_content["content"]) == 0
             )
-            reason_already_seen_content = maybe_content["content"] in dupe_detection_set
+            reason_already_seen_content = (
+                maybe_content["content"] in dupe_detection_set
+            )
             reasons = dict(
                 reason_empty_response=reason_empty_response,
                 reason_content_empty=reason_content_empty,
@@ -102,17 +107,19 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
             )
 
             if not any(reasons.values()):
-                ###########################################################################
+                ###############################################################
                 # Log the entry
-                ###########################################################################
-                title_str = (f"`{rich.markup.escape(maybe_content['title'])}`" 
-                    if maybe_content["title"] else '<No Title>'
+                ###############################################################
+                title_str = (
+                    f"`{rich.markup.escape(maybe_content['title'])}`"
+                    if maybe_content["title"]
+                    else "<No Title>"
                 )
                 print(
                     " > Result:",
                     f"Title: {title_str}",
                     f"url: {rich.markup.escape(maybe_content['url'])}",
-                    f"Content: {len(maybe_content['content'])}"
+                    f"Content: {len(maybe_content['content'])}",
                 )
                 dupe_detection_set.add(maybe_content["content"])
                 content.append(maybe_content)
@@ -120,10 +127,13 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                     break
 
             else:
-                reason_string = ', '.join({
-                    reason_name for reason_name, whether_failed in reasons.items() 
-                    if whether_failed
-                })
+                reason_string = ", ".join(
+                    {
+                        reason_name
+                        for reason_name, whether_failed in reasons.items()
+                        if whether_failed
+                    }
+                )
                 print(f" x Excluding an URL because `{reason_string}`: `{url}`")
 
         content = content[:n]  # Redundant [:n]
@@ -137,21 +147,24 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
 
     def search(self, q: str, n: int) -> Generator[str, None, None]:
         return NotImplemented(
-            "Search is an abstract base class, not meant to be directly instantiated. "
-            "You should instantiate a derived class like GoogleSearch."
+            "Search is an abstract base class, not meant to be directly "
+            "instantiated. You should instantiate a derived class like "
+            "GoogleSearch."
         )
-    
+
 
 class GoogleSearchServer(SearchABC):
     def search(self, q: str, n: int) -> Generator[str, None, None]:
         return googlesearch.search(q, num=n, stop=None)
-    
+
 
 class Application:
     def serve(self, host: str = _DEFAULT_HOST) -> NoReturn:
         host, port = _parse_host(host)
 
-        with http.server.ThreadingHTTPServer((host, int(port)), GoogleSearchServer) as server:
+        with http.server.ThreadingHTTPServer(
+            (host, int(port)), GoogleSearchServer
+        ) as server:
             print("Serving forever.")
             server.serve_forever()
 
@@ -160,7 +173,7 @@ class Application:
 
     def test_server(self, query, n, host=_DEFAULT_HOST):
         host, port = _parse_host(host)
-        
+
         print(f"Query: `{query}`")
         print(f"n: {n}")
 
