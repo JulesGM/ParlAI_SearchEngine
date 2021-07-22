@@ -21,7 +21,7 @@ print = rich.print
 
 _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8080
-_FAILURE_PROTECTION_FACTOR = 1.4
+
 
 def _parse_host(host: str) -> Tuple[str, int]:
     splitted = host.split(":")
@@ -81,10 +81,9 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         q = parsed["q"]
 
         # Over query a little bit in case we find useless URLs
-        urls = self.search(q=q, n=int(_FAILURE_PROTECTION_FACTOR * n))
         content = []
-        content_set = set()
-        for url in urls:
+        dupe_detection_set = set()
+        for url in self.search(q=q, n=n):
             if len(content) >= n:
                 break
             maybe_content = _get_and_parse(url)
@@ -94,7 +93,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
             reason_content_empty = (
                 maybe_content["content"] is None or len(maybe_content["content"]) == 0
             )
-            reason_already_seen_content = maybe_content["content"] in content_set
+            reason_already_seen_content = maybe_content["content"] in dupe_detection_set
             reasons = dict(
                 reason_empty_response=reason_empty_response,
                 reason_content_empty=reason_content_empty,
@@ -109,15 +108,20 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                     if maybe_content["title"] else '<No Title>'
                 )
                 print(
-                    f"title: {title_str}",
+                    " > Result:",
+                    f"Title: {title_str}",
                     f"url: {rich.markup.escape(maybe_content['url'])}",
-                    f"content: {len(maybe_content['content'])}"
+                    f"Content: {len(maybe_content['content'])}"
                 )
-                content_set.add(maybe_content["content"])
+                dupe_detection_set.add(maybe_content["content"])
                 content.append(maybe_content)
+                if len(content) >= n:
+                    break
+
             else:
                 reason_string = ', '.join({
-                    reason_name for reason_name, whether_failed in reasons.items() if whether_failed
+                    reason_name for reason_name, whether_failed in reasons.items() 
+                    if whether_failed
                 })
                 print(f" x Excluded because `{reason_string}`: `{url}`")
 
@@ -130,7 +134,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(output)
 
-    def search(self, q: str, n: int):
+    def search(self, q: str, n: int) -> Generator[str, None, None]:
         return NotImplemented(
             "Search is an abstract base class, not meant to be directly instantiated. "
             "You should instantiate a derived class like GoogleSearch."
@@ -138,8 +142,8 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
     
 
 class GoogleSearchServer(SearchABC):
-    def search(self, q: str, n: int):
-        return googlesearch.search(q, num=n, stop=n)
+    def search(self, q: str, n: int) -> Generator[str, None, None]:
+        return googlesearch.search(q, num=n, stop=None)
     
 
 class Application:
