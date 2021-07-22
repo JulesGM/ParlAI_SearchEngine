@@ -73,13 +73,18 @@ def _get_and_parse(url: str) -> Dict[str, str]:
 
 class SearchABC(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
+        #######################################################################
+        # Prepare and Parse
+        #######################################################################
         content_length = int(self.headers["Content-Length"])
+        post_data = self.rfile.read(content_length)
+
+        # Figure out the encoding
         if "charset=" in self.headers["Content-Type"]:
-            charset = re.match(r".*charset=([\w_\-]+)\b.*").group(1)
+            charset = re.match(r".*charset=([\w_\-]+)\b.*", self.headers["Content-Type"]).group(1)
             print(f"http header charset: {charset}")
         else:
             detector = chardet.UniversalDetector()
-            post_data = self.rfile.read(content_length)
             detector.feed(post_data)
             detector.close()
             charset = detector.result["encoding"]
@@ -92,6 +97,9 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
             assert len(v) == 1, len(v)
         parsed = {k: v[0] for k, v in parsed.items()}
 
+        #######################################################################
+        # Search, get the pages and parse the content of the pages
+        #######################################################################
         print(f"\n[bold]Received query:[/] {parsed}")
         n = int(parsed["n"])
         q = parsed["q"]
@@ -99,11 +107,16 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         # Over query a little bit in case we find useless URLs
         content = []
         dupe_detection_set = set()
+        
+        # Search until we have n valid entries
         for url in self.search(q=q, n=n):
             if len(content) >= n:
                 break
+
+            # Get the content of the pages and parse it
             maybe_content = _get_and_parse(url)
 
+            # Check that getting the content didn't fail
             reason_empty_response = maybe_content is None
             reason_content_empty = (
                 maybe_content["content"] is None
