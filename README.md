@@ -2,10 +2,10 @@
 A web search server for ParlAI, including Blenderbot2.
 
 
-*Querying the server:*<br>
+*Querying the server:*<br><br>
 <img src="imgs/blenderbot2_demo.png" width="60%" >
 
-*The server reacting correctly:*<br>
+*The server reacting correctly:*<br><br>
 <img src="imgs/server_demo.png" width="60%" >
 
 
