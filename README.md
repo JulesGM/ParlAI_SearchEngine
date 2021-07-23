@@ -3,10 +3,10 @@ A web search server for ParlAI, including Blenderbot2.
 
 
 *Querying the server:*
-<img src="imgs/blenderbot2_demo.png" width="917" height="106">
+<img src="imgs/blenderbot2_demo.png" width="80%" >
 
 *The server reacting correctly:*
-<img src="imgs/server_demo.png" width="1034" height="506">
+<img src="imgs/server_demo.png" width="90%" >
 
 
 - Uses `html2text` to strip the markup out of the page.
