@@ -1,4 +1,4 @@
-## Description
+# Description
 A web search server for ParlAI, including Blenderbot2.
 
 
@@ -19,7 +19,7 @@ in a modular / search engine agnostic way to allow very easily add new search en
 
 Using the `googlesearch` module is very slow because it parses Google search webpages instead of querying cloud webservices. This is fine for playing with the model, but makes that searcher unusable for training or large scale inference purposes. In the paper, Bing cloud services are used, matching the results over Common Crawl instead of just downloading the page.
 
-## Quick Start:
+# Quick Start:
 
 First install the requirements:
 ```bash
@@ -41,19 +41,18 @@ Then for example start Blenderbot2 in a different terminal tab:
 python -m parlai interactive --model-file zoo:blenderbot2/blenderbot2_3B/model --search_server 0.0.0.0:8080
 ```
 
-## Colab
+# Colab
 There is a jupyter notebook. Just run it. Some instances run out of memory, some don't.
 
-## Testing the server:
-You need to already be running a server by calling serve on the same hostname and ip. 
-This will create a parlai.agents.rag.retrieve_api.SearchEngineRetriever and try to connect 
-and send a query, and parse the answer.
+# Other Ways to Test the Server:
+
+This method creates a retrieval client class instance the same way the ParlAI code would, and tries to retrieve from the server. If you have a server running, you can use this to test the server without having to load the (very large) dialog models. This will create a `parlai.agents.rag.retrieve_api.SearchEngineRetriever` and try to connect and send a query, and parse the answer.
 
 ```bash
 python search_server.py test_server --host 0.0.0.0:8080
 ```
 
-## Testing the parser:
+# Testing the parser:
 
 ```bash
 python search_server.py test_parser www.some_url_of_your_choice.com/
