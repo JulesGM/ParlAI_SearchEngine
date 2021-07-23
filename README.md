@@ -17,10 +17,7 @@ alt="Shows lines with search results, the titles and the urls.">
 in a modular / search engine agnostic way to allow very easily add new search engine support.
 
 
-Using the `googlesearch` module is very slow because it parses webpages instead of querying webservices. This is fine for playing with the model, but makes that searcher unusable for training or large scale inference purposes.
-
-
-To be able to train, one would just have to for example pay for Google Cloud or Microsoft Azure's search services, and derive the Search class to query them.
+Using the `googlesearch` module is very slow because it parses Google search webpages instead of querying cloud webservices. This is fine for playing with the model, but makes that searcher unusable for training or large scale inference purposes. In the paper, Bing cloud services are used, matching the results over Common Crawl instead of just downloading the page.
 
 ## Quick Start:
 
