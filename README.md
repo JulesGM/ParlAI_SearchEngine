@@ -49,6 +49,11 @@ There is a jupyter notebook. Just run it. Some instances run out of memory, some
 This method creates a retrieval client class instance the same way the ParlAI code would, and tries to retrieve from the server. If you have a server running, you can use this to test the server without having to load the (very large) dialog model. This will create a `parlai.agents.rag.retrieve_api.SearchEngineRetriever` and try to connect and send a query, and parse the answer.
 
 ```bash
+python search_server.py serve --host 0.0.0.0:8080
+```
+then in a different tab
+
+```bash
 python search_server.py test_server --host 0.0.0.0:8080
 ```
 
