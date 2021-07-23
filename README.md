@@ -3,10 +3,12 @@ A web search server for ParlAI, including Blenderbot2.
 
 
 *Querying the server:*<br>
-<img src="imgs/blenderbot2_demo.png" width="70%" >
+<img src="imgs/blenderbot2_demo.png" width="70%" 
+alt="Shows a small dialog, with the human asking who Alexander the Great is, and the bot answering that he is a Macedonian king">
 
 *The server reacting correctly:*<br>
-<img src="imgs/server_demo.png" width="70%" >
+<img src="imgs/server_demo.png" width="70%" 
+alt="Shows lines with search results, the titles and the urls.">
 
 
 - Uses `html2text` to strip the markup out of the page.
