@@ -116,13 +116,18 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
 
             # Check that getting the content didn't fail
             reason_empty_response = maybe_content is None
-            reason_content_empty = (
-                maybe_content["content"] is None
-                or len(maybe_content["content"]) == 0
-            )
-            reason_already_seen_content = (
-                maybe_content["content"] in dupe_detection_set
-            )
+            if not reason_empty_response:
+                reason_content_empty = (
+                    maybe_content["content"] is None
+                    or len(maybe_content["content"]) == 0
+                )
+                reason_already_seen_content = (
+                    maybe_content["content"] in dupe_detection_set
+                )
+            else:
+                reason_content_empty = False
+                reason_already_seen_content = False
+            
             reasons = dict(
                 reason_empty_response=reason_empty_response,
                 reason_content_empty=reason_content_empty,
