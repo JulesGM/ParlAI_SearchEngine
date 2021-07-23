@@ -24,6 +24,7 @@ print = rich.print
 
 _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8080
+_DELAY_SEARCH = 1.0  # Making this too low will get you IP banned
 _STYLE_GOOD = "[green]"
 _STYLE_SKIP = ""
 _CLOSE_STYLE_GOOD = "[/]" if _STYLE_GOOD else ""
@@ -200,7 +201,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
 
 class GoogleSearchServer(SearchABC):
     def search(self, q: str, n: int) -> Generator[str, None, None]:
-        return googlesearch.search(q, num=n, stop=None)
+        return googlesearch.search(q, num=n, stop=None, pause=_DELAY_SEARCH)
 
 
 class Application:
