@@ -2,6 +2,7 @@
 A web search server for ParlAI, including Blenderbot2.
 See README.md
 """
+import html
 import http.server
 import json
 import re
@@ -23,9 +24,17 @@ print = rich.print
 
 _DEFAULT_HOST = "0.0.0.0"
 _DEFAULT_PORT = 8080
+_STYLE_GOOD = "[green]"
+_STYLE_SKIP = ""
+_CLOSE_STYLE_GOOD = "[/]" if _STYLE_GOOD else ""
+_CLOSE_STYLE_SKIP = "[/]" if _STYLE_SKIP else ""
 
 
 def _parse_host(host: str) -> Tuple[str, int]:
+    """ Parse the host string. 
+    Should be in the format HOSTNAME:PORT. 
+    Example: 0.0.0.0:8080
+    """
     splitted = host.split(":")
     hostname = splitted[0]
     port = splitted[1] if len(splitted) > 1 else _DEFAULT_PORT
@@ -33,6 +42,7 @@ def _parse_host(host: str) -> Tuple[str, int]:
 
 
 def _get_and_parse(url: str) -> Dict[str, str]:
+    """ Download a webpage and parse it. """
 
     try:
         resp = requests.get(url)
@@ -50,7 +60,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     soup = bs4.BeautifulSoup(page, features="lxml")
     pre_rendered = soup.find("title")
     output_dict["title"] = (
-        pre_rendered.renderContents().decode() if pre_rendered else ""
+        html.unescape(pre_rendered.renderContents().decode()) if pre_rendered else ""
     )
     
     output_dict["title"] = (
@@ -66,13 +76,15 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     text_maker.ignore_images = True
     text_maker.ignore_emphasis = True
     text_maker.single_line = True
-    output_dict["content"] = text_maker.handle(page).strip()
+    output_dict["content"] = html.unescape(text_maker.handle(page).strip())
 
     return output_dict
 
 
 class SearchABC(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
+        """ Handle POST requests from the client. (All requests are POST) """
+
         #######################################################################
         # Prepare and Parse
         #######################################################################
@@ -144,10 +156,9 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                     else "<No Title>"
                 )
                 print(
-                    " [green]>[/] Result:",
-                    f"Title: {title_str}",
-                    f"url: {rich.markup.escape(maybe_content['url'])}",
-                    f"Content: {len(maybe_content['content'])}",
+                    f" {_STYLE_GOOD}>{_CLOSE_STYLE_GOOD} Result: Title: {title_str}\n"
+                    f"   {rich.markup.escape(maybe_content['url'])}"
+                    # f"Content: {len(maybe_content['content'])}",
                 )
                 dupe_detection_set.add(maybe_content["content"])
                 content.append(maybe_content)
@@ -165,7 +176,8 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                         if whether_failed
                     }
                 )
-                print(f" x Excluding an URL because `{reason_string}`: `{url}`")
+                print(f" {_STYLE_SKIP}x{_CLOSE_STYLE_SKIP} Excluding an URL because `{_STYLE_SKIP}{reason_string}{_CLOSE_STYLE_SKIP}`:\n"
+                      f"   {url}") 
 
         ###############################################################
         # Prepare the answer and send it
@@ -193,18 +205,33 @@ class GoogleSearchServer(SearchABC):
 
 class Application:
     def serve(self, host: str = _DEFAULT_HOST) -> NoReturn:
-        host, port = _parse_host(host)
+        """ Main entry point: Start the server.
+        Host is expected to be in the HOSTNAME:PORT format.
+        HOSTNAME can be an IP. Most of the time should be 0.0.0.0.
+        Port 8080 doesn't work on colab.
+        """
+        hostname, port = _parse_host(host)
+        host = f"{hostname}:{port}"
 
         with http.server.ThreadingHTTPServer(
-            (host, int(port)), GoogleSearchServer
+            (hostname, int(port)), GoogleSearchServer
         ) as server:
             print("Serving forever.")
+            print(f"Host: {host}")
             server.serve_forever()
 
-    def test_parser(self, url):
+    def test_parser(self, url: str) -> None:
+        """ Test the webpage getter and parser. 
+        Will try to download the page, then parse it, then will display the result.
+        """
         print(_get_and_parse(url))
 
-    def test_server(self, query, n, host=_DEFAULT_HOST):
+    def test_server(self, query: str, n: int, host : str = _DEFAULT_HOST) -> None:
+        """ Creates a thin fake client to test a server that is already up.
+        Expects a server to have already been started with `python search_server.py serve [options]`.
+        Creates a retriever client the same way ParlAi client does it for its chat bot, then
+        sends a query to the server.
+        """
         host, port = _parse_host(host)
 
         print(f"Query: `{query}`")
@@ -217,7 +244,7 @@ class Application:
             )
         )
         print("Retrieving one.")
-        print(retriever._retrieve_single(query, n))
+        print(retriever.retrieve([query], n))
         print("Done.")
 
 
