@@ -29,7 +29,8 @@ _STYLE_GOOD = "[green]"
 _STYLE_SKIP = ""
 _CLOSE_STYLE_GOOD = "[/]" if _STYLE_GOOD else ""
 _CLOSE_STYLE_SKIP = "[/]" if _STYLE_SKIP else ""
-
+_DEFAULT_URL_REQUEST_TIMEOUT = 15 # seconds
+_TRUNCATE_TEXT_BYTES = 2048
 
 def _parse_host(host: str) -> Tuple[str, int]:
     """ Parse the host string. 
@@ -46,7 +47,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     """ Download a webpage and parse it. """
 
     try:
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=_DEFAULT_URL_REQUEST_TIMEOUT)
     except requests.exceptions.RequestException as e:
         print(f"[!] {e} for url {url}")
         return None
@@ -161,6 +162,11 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                     f"   {rich.markup.escape(maybe_content['url'])}"
                     # f"Content: {len(maybe_content['content'])}",
                 )
+
+                # Truncate text 
+                if len(maybe_content) > _TRUNCATE_TEXT_BYTES:
+                    maybe_content = maybe_content[:_TRUNCATE_TEXT_BYTES]
+
                 dupe_detection_set.add(maybe_content["content"])
                 content.append(maybe_content)
                 if len(content) >= n:
@@ -201,7 +207,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
 
 class GoogleSearchServer(SearchABC):
     def search(self, q: str, n: int) -> Generator[str, None, None]:
-        return googlesearch.search(q, num=n, stop=None, pause=_DELAY_SEARCH)
+        return googlesearch.search(q, num=n, stop=None, pause=_DELAY_SEARCH, tbs="qdr:m")
 
 
 class Application:
