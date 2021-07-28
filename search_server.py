@@ -29,7 +29,7 @@ _STYLE_GOOD = "[green]"
 _STYLE_SKIP = ""
 _CLOSE_STYLE_GOOD = "[/]" if _STYLE_GOOD else ""
 _CLOSE_STYLE_SKIP = "[/]" if _STYLE_SKIP else ""
-
+_REQUESTS_GET_TIMEOUT = 5
 
 def _parse_host(host: str) -> Tuple[str, int]:
     """ Parse the host string. 
@@ -46,7 +46,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
     """ Download a webpage and parse it. """
 
     try:
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=_REQUESTS_GET_TIMEOUT)
     except requests.exceptions.RequestException as e:
         print(f"[!] {e} for url {url}")
         return None
@@ -205,12 +205,17 @@ class GoogleSearchServer(SearchABC):
 
 
 class Application:
-    def serve(self, host: str = _DEFAULT_HOST) -> NoReturn:
+    def serve(
+        self, host: str = _DEFAULT_HOST) -> NoReturn:
         """ Main entry point: Start the server.
-        Host is expected to be in the HOSTNAME:PORT format.
-        HOSTNAME can be an IP. Most of the time should be 0.0.0.0.
-        Port 8080 doesn't work on colab.
+        Arguments:
+            host (str):
+        HOSTNAME:PORT of the server. HOSTNAME can be an IP. 
+        Most of the time should be 0.0.0.0. Port 8080 doesn't work on colab.
+        Other ports also probably don't work on colab, test it out.
+
         """
+
         hostname, port = _parse_host(host)
         host = f"{hostname}:{port}"
 
