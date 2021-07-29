@@ -28,15 +28,7 @@ _STYLE_GOOD = "[green]"
 _STYLE_SKIP = ""
 _CLOSE_STYLE_GOOD = "[/]" if _STYLE_GOOD else ""
 _CLOSE_STYLE_SKIP = "[/]" if _STYLE_SKIP else ""
-_requests_get_timeout = 5 # seconds
-_strip_html_menus = False 
-_max_text_bytes = None  
-
-# To get a free Bing Subscription Key go here:
-#    https://www.microsoft.com/en-us/bing/apis/bing-entity-search-api
-_use_bing = False # Use Bing instead of Google Search Engine
-
-_use_bing_description_only = False # short but 10X faster
+_REQUESTS_GET_TIMEOUT = 5 # seconds
 
 # Bing Search API documentation:
 # https://docs.microsoft.com/en-us/bing/search-apis/bing-web-search/reference/query-parameters
@@ -51,14 +43,11 @@ def _parse_host(host: str) -> Tuple[str, int]:
     port = splitted[1] if len(splitted) > 1 else _DEFAULT_PORT
     return hostname, int(port)
 
-
 def _get_and_parse(url: str) -> Dict[str, str]:
     """ Download a webpage and parse it. """
 
-    global _requests_get_timeout
-
     try:
-        resp = requests.get(url, timeout=_requests_get_timeout)
+        resp = requests.get(url, timeout=_REQUESTS_GET_TIMEOUT)
     except requests.exceptions.RequestException as e:
         print(f"[!] {e} for url {url}")
         return None
@@ -93,10 +82,8 @@ def _get_and_parse(url: str) -> Dict[str, str]:
 
     return output_dict
 
-
 class SearchABC(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
-        global _strip_html_menus, _max_text_bytes, _use_bing, _use_bing_description_only
 
         """ Handle POST requests from the client. (All requests are POST) """
 
@@ -125,12 +112,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         #######################################################################
         # Search, get the pages and parse the content of the pages
         #######################################################################
-        if _use_bing:
-            search_engine = "Bing"
-        else:
-            search_engine = "Google"
-
-        print(f"\n[bold]Received query:[/] {parsed}, using {search_engine} search engine and using bing link descriptions only {_use_bing_description_only}")
+        print(f"\n[bold]Received query:[/] {parsed}")
 
         n = int(parsed["n"])
         q = parsed["q"]
@@ -140,16 +122,14 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         dupe_detection_set = set()
 
         urls = []
-        if _use_bing:
-            results = self.search_bing(q, n, ["News", "Entities", "Places", "Webpages"],
-                _use_bing_description_only)
+        results = self.search(q=q, n=n, 
+            subscription_key = self.server.subscription_key, 
+            use_description_only=self.server.use_description_only)
 
-            if _use_bing_description_only:
-                content = results
-            else:
-                urls = results
+        if self.server.use_description_only:
+            content = results
         else:
-            urls = self.search(q=q, n=n)
+            urls = results
 
         # Only execute loop to fetch each URL if urls returned
         for url in urls:
@@ -195,20 +175,18 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                 )
 
                 # Strip out all lines starting with "* " usually menu items
-                if _strip_html_menus:
-                    print("Stripping HTML menus")
+                if self.server.strip_html_menus:
                     new_content = ""
                     for line in maybe_content['content'].splitlines():
-                        x = re.findall("^[\s]*\\* ", line)
-                        if not x or len(line) > 50:
-                            new_content += line + "\n"
+                        if line.find("*"): # Performance optimazation since regex is slow
+                            x = re.findall("^[\s]*\\* ", line)
+                            if not x or len(line) > 50:
+                                new_content += line + "\n"
 
                     maybe_content['content'] = new_content
-                else:
-                    print("Not stripping HTML menus")
 
                 # Truncate text
-                maybe_content['content'] = maybe_content['content'][:_max_text_bytes]
+                maybe_content['content'] = maybe_content['content'][:self.server.max_text_bytes]
 
                 dupe_detection_set.add(maybe_content["content"])
                 content.append(maybe_content)
@@ -240,26 +218,53 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(output)
 
-    def search(self, q: str, n: int) -> Generator[str, None, None]:
+    def search(self, 
+            q: str, n: int, 
+            subscription_key: str = "", 
+            use_description_only: bool = False
+        ) -> Generator[str, None, None]:
+
         return NotImplemented(
             "Search is an abstract base class, not meant to be directly "
             "instantiated. You should instantiate a derived class like "
             "GoogleSearch."
         )
 
-    def search_bing(
-            self, query: str, n: int, types = ["News"],
-            return_content = True, promote=["News"]
-        ):
+def filter_html(title):
+    title.replace("<b>", "")
+    title = title.replace("<b>", "")
+    title = title.replace("</b>", "")
+    title = title.replace("<br>", "")
+    title = title.replace("</br>", "")
+    title = title.replace("&quot", "")
+    title = title.replace("&amp", "")
+    title = title.replace("&gt", "")
+    title = title.replace("&lt", "")
+    title = title.replace("&#39", "")
+    title = title.replace("\u2018", "") # unicode single quote
+    title = title.replace("\u2019", "") # unicode single quote
+    title = title.replace("\u8220", "") # unicode left double quote 
+    title = title.replace("\u8221", "") # unicode right double quote
+    title = title.replace("\u8222", "") # unicode double low-9 quotation mark
+    title = title.replace("\u2013", "") # unicode dash 
+    title = title.replace("\u00b7", "") # unicode middle dot
+    return title
 
-        global _bing_subscription_key
+class BingSearchServer(SearchABC):
+    def search(self, 
+            q: str, n: int, 
+            subscription_key: str = None, 
+            use_description_only: bool = False
+        ) -> Generator[str, None, None]:
 
-        assert _bing_subscription_key
+        assert subscription_key
+        types = ["News", "Entities", "Places", "Webpages"]
+        promote = ["News"]
 
         search_url = "https://api.bing.microsoft.com/v7.0/search"
         print(f"n={n} responseFilter={types}")
-        headers = {"Ocp-Apim-Subscription-Key": _bing_subscription_key}
-        params = {"q": query, "textDecorations":True,
+        headers = {"Ocp-Apim-Subscription-Key": subscription_key}
+        params = {"q": q, "textDecorations":True,
             "textFormat": "HTML", "responseFilter":types, 
             "promote":promote, "answerCount":5}
         response = requests.get(search_url, headers=headers, params=params)
@@ -302,7 +307,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                 print("No title to skipping")
                 continue
 
-            if return_content:
+            if self.server.use_description_only:
                 content = title + ". "
                 if "snippet" in item :
                     snippet = filter_html(item["snippet"])
@@ -319,101 +324,122 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                 else:
                     print(f"Could not find descripton for item {item}")
             else:
-                urls.append(url)
+                if url not in urls:
+                    urls.append(url)
 
-        if len(urls) == 0 and not return_content:
-           print(f"Warning: No Bing URLs found for query {query}")
+        if len(urls) == 0 and not use_description_only:
+           print(f"Warning: No Bing URLs found for query {q}")
 
-        if return_content:
+        if use_description_only:
             return contents
         else:
             return urls
 
-def filter_html(title):
-    title.replace("<b>", "")
-    title = title.replace("<b>", "")
-    title = title.replace("</b>", "")
-    title = title.replace("</br>", "")
-    title = title.replace("\u2018", "")
-    title = title.replace("\u2018", "")
-    title = title.replace("\u00b7", "")
-    title = title.replace("&amp", "")
-    title = title.replace("</br>", "")
-    title = title.replace("&#39", "")
-    return title
-
 class GoogleSearchServer(SearchABC):
-    def search(self, q: str, n: int) -> Generator[str, None, None]:
+    def search(self, q: str, n: int,
+            subscription_key: str = None,
+            use_description_only: bool = False
+        ) -> Generator[str, None, None]:
+
         return googlesearch.search(q, num=n, stop=None, pause=_DELAY_SEARCH)
+
+class SearchABCServer(http.server.ThreadingHTTPServer):
+    def __init__(self, 
+            server_address, RequestHandlerClass, 
+            max_text_bytes, strip_html_menus,
+            use_description_only = False, subscription_key = None 
+        ):
+
+        self.max_text_bytes = max_text_bytes
+        self.strip_html_menus = strip_html_menus
+        self.use_description_only = use_description_only
+        self.subscription_key = subscription_key
+
+        super().__init__(server_address, RequestHandlerClass)
 
 class Application:
     def serve(
-        self, host: str = _DEFAULT_HOST,
-        requests_get_timeout = _requests_get_timeout,
-        strip_html_menus = _strip_html_menus,
-        max_text_bytes = _max_text_bytes,
-        use_bing = _use_bing,
-        use_bing_description_only = _use_bing_description_only,
-        bing_subscription_key = None) -> NoReturn:
-
-        global _requests_get_timeout, _strip_html_menus, _max_text_bytes
-        global _use_bing, _use_bing_description_only, _bing_subscription_key
-
+            self, host: str = _DEFAULT_HOST,
+            requests_get_timeout = _REQUESTS_GET_TIMEOUT,
+            strip_html_menus = False,
+            max_text_bytes = None,
+            search_engine = "Google",
+            use_description_only = False,
+            subscription_key = None
+        ) -> NoReturn:
         """ Main entry point: Start the server.
         Arguments:
             host (str):
             requests_get_timeout (int):
             strip_html_menus (bool):
             max_text_bytes (int):
-            use_bing (bool):
-            use_bing_description_only (bool):
-            bing_subscription_key (str):
+            search_engine (str):
+            use_description_only (bool):
+            subscription_key (str):
         HOSTNAME:PORT of the server. HOSTNAME can be an IP.
         Most of the time should be 0.0.0.0. Port 8080 doesn't work on colab.
         Other ports also probably don't work on colab, test it out.
-        requests_get_timeout is seconds before each url fetch times out
-        strip_html_menus removes likely menus to clean up text
-        max_text_bytes limits the bytes returned per web page. Note,
-            ParlAI current defaults to 512 bytes
-        use_bing set to True will use Bing instead of Google
-        use_bing_description_only are short but 10X faster since no url gets
-        bing_subscription_key required to use bing. Can get one at:
+        requests_get_timeout defaults to 5 seconds before each url fetch times out.
+        strip_html_menus removes likely HTML menus to clean up text.
+        max_text_bytes limits the bytes returned per web page. Set to no max.
+            Note, ParlAI current defaults to 512 byte.
+        search_engine set to "Google" default or "Bing"
+        use_description_only are short but 10X faster since no url gets 
+            for Bing only
+        use_subscription_key required to use Bing only. Can get a free one at:
             https://www.microsoft.com/en-us/bing/apis/bing-entity-search-api
+
         """
+
+        global _REQUESTS_GET_TIMEOUT
 
         hostname, port = _parse_host(host)
         host = f"{hostname}:{port}"
 
-        _requests_get_timeout = requests_get_timeout
-        _strip_html_menus = strip_html_menus
-        _max_text_bytes = max_text_bytes
-        _use_bing = use_bing
-        _use_bing_description_only = use_bing_description_only
-        _bing_subscription_key = bing_subscription_key
+        _REQUESTS_GET_TIMEOUT = requests_get_timeout
 
-        self.check_and_print_cmdline_args()
+        self.check_and_print_cmdline_args(max_text_bytes, strip_html_menus,
+            search_engine, use_description_only, subscription_key)
 
-        with http.server.ThreadingHTTPServer(
-            (hostname, int(port)), GoogleSearchServer
-        ) as server:
-            print("Serving forever.")
-            print(f"Host: {host}")
-            server.serve_forever()
+        if search_engine == "Bing":
+            request_handler = BingSearchServer
+        else:
+            request_handler = GoogleSearchServer
+
+        with SearchABCServer(
+                (hostname, int(port)), request_handler, 
+                max_text_bytes, strip_html_menus, 
+                use_description_only, subscription_key
+            ) as server:
+                print("Serving forever.")
+                print(f"Host: {host}")
+                server.serve_forever()
 
     def check_and_print_cmdline_args(
-        self) -> None:
-        if _use_bing and _bing_subscription_key is None:
-            print("--bing_subscription_key required to use bing search")
-            print("To get one go to url:")
-            print("https://www.microsoft.com/en-us/bing/apis/bing-entity-search-api")
-            exit()
+            self, max_text_bytes, strip_html_menus,
+            search_engine, use_description_only, subscription_key
+        ) -> None:
+
+        if search_engine == "Bing":
+            if subscription_key is None:
+                print("Warning: subscription_key is required for Bing Search Engine")
+                print("To get one go to url:")
+                print("https://www.microsoft.com/en-us/bing/apis/bing-entity-search-api")
+                exit()
+        elif search_engine == "Google":
+            if use_description_only:
+                print("Warning: use_description_only is not supported for Google Search Engine")
+                exit()
+            if subscription_key is not None:
+                print("Warning: subscription_key is not supported for Google Search Engine")
+                exit()
 
         print("Command line args used:")
-        print(f"  requests_get_timeout={_requests_get_timeout}")
-        print(f"  strip_html_menus={_strip_html_menus}")
-        print(f"  max_text_bytes={_max_text_bytes}")
-        print(f"  use_bing={_use_bing}")
-        print(f"  use_bing_description_only={_use_bing_description_only}")
+        print(f"  requests_get_timeout={_REQUESTS_GET_TIMEOUT}")
+        print(f"  strip_html_menus={strip_html_menus}")
+        print(f"  max_text_bytes={max_text_bytes}")
+        print(f"  search_engine={search_engine}")
+        print(f"  use_description_only={use_description_only}")
 
     def test_parser(self, url: str) -> None:
         """ Test the webpage getter and parser.
@@ -422,17 +448,16 @@ class Application:
         print(_get_and_parse(url))
 
     def test_server(
-            self, query: str, n: int, host : str = _DEFAULT_HOST,
-            requests_get_timeout = _requests_get_timeout,
-            strip_html_menus = _strip_html_menus,
-            max_text_bytes = _max_text_bytes,
-            use_bing = _use_bing,
-            use_bing_description_only = _use_bing_description_only,
-            bing_subscription_key = None
-        ) -> None:
+            self, host: str = _DEFAULT_HOST,
+            requests_get_timeout = _REQUESTS_GET_TIMEOUT,
+            strip_html_menus = False,
+            max_text_bytes = None,
+            search_engine = "Google",
+            use_description_only = False,
+            subscription_key = None
+        ) -> NoReturn:
 
-        global _requests_get_timeout, _strip_html_menus, _max_text_bytes
-        global _use_bing, _use_bing_description_only, _bing_subscription_key
+        global _REQUESTS_GET_TIMEOUT
 
         """ Creates a thin fake client to test a server that is already up.
         Expects a server to have already been started with `python search_server.py serve [options]`.
@@ -441,16 +466,13 @@ class Application:
         """
         host, port = _parse_host(host)
 
-        _requests_get_timeout = requests_get_timeout
-        _strip_html_menus = strip_html_menus
-        _max_text_bytes = max_text_bytes
-        _use_bing = use_bing
-        _use_bing_description_only = use_bing_description_only
+        _REQUESTS_GET_TIMEOUT = requests_get_timeout
 
         print(f"Query: `{query}`")
         print(f"n: {n}")
 
-        self.check_and_print_cmdline_args()
+        self.check_and_print_cmdline_args(max_text_bytes, strip_html_menus,
+            search_server, use_description_only, subscription_key)
 
         retriever = parlai.agents.rag.retrieve_api.SearchEngineRetriever(
             dict(
