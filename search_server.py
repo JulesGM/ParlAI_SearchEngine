@@ -82,7 +82,7 @@ def _get_and_parse(url: str) -> Dict[str, str]:
 
     return output_dict
 
-class SearchABC(http.server.BaseHTTPRequestHandler):
+class SearchABCRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
 
         """ Handle POST requests from the client. (All requests are POST) """
@@ -183,7 +183,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
                             if not x or len(line) > 50:
                                 new_content += line + "\n"
 
-                    maybe_content['content'] = new_content
+                    maybe_content['content'] = filter_special_chars(new_content)
 
                 # Truncate text
                 maybe_content['content'] = maybe_content['content'][:self.server.max_text_bytes]
@@ -230,12 +230,7 @@ class SearchABC(http.server.BaseHTTPRequestHandler):
             "GoogleSearch."
         )
 
-def filter_html(title):
-    title.replace("<b>", "")
-    title = title.replace("<b>", "")
-    title = title.replace("</b>", "")
-    title = title.replace("<br>", "")
-    title = title.replace("</br>", "")
+def filter_special_chars(title):
     title = title.replace("&quot", "")
     title = title.replace("&amp", "")
     title = title.replace("&gt", "")
@@ -243,14 +238,20 @@ def filter_html(title):
     title = title.replace("&#39", "")
     title = title.replace("\u2018", "") # unicode single quote
     title = title.replace("\u2019", "") # unicode single quote
+    title = title.replace("\u201c", "") # unicode left double quote 
+    title = title.replace("\u201d", "") # unicode right double quote 
     title = title.replace("\u8220", "") # unicode left double quote 
     title = title.replace("\u8221", "") # unicode right double quote
     title = title.replace("\u8222", "") # unicode double low-9 quotation mark
+    title = title.replace("\u2022", "") # unicode bullet 
     title = title.replace("\u2013", "") # unicode dash 
     title = title.replace("\u00b7", "") # unicode middle dot
+    title = title.replace("\u00d7", "") # multiplication sign
     return title
 
-class BingSearchServer(SearchABC):
+class BingSearchRequestHandler(SearchABCRequestHandler):
+    bing_search_url = "https://api.bing.microsoft.com/v7.0/search"
+
     def search(self, 
             q: str, n: int, 
             subscription_key: str = None, 
@@ -261,13 +262,13 @@ class BingSearchServer(SearchABC):
         types = ["News", "Entities", "Places", "Webpages"]
         promote = ["News"]
 
-        search_url = "https://api.bing.microsoft.com/v7.0/search"
         print(f"n={n} responseFilter={types}")
         headers = {"Ocp-Apim-Subscription-Key": subscription_key}
-        params = {"q": q, "textDecorations":True,
+        params = {"q": q, "textDecorations":False,
             "textFormat": "HTML", "responseFilter":types, 
             "promote":promote, "answerCount":5}
-        response = requests.get(search_url, headers=headers, params=params)
+        response = requests.get(BingSearchRequestHandler.bing_search_url, 
+            headers=headers, params=params)
         response.raise_for_status()
         search_results = response.json()
 
@@ -301,7 +302,7 @@ class BingSearchServer(SearchABC):
             title = item["name"]
 
             # Remove Bing formatting characters from title
-            title = filter_html(title)
+            title = filter_special_chars(title)
 
             if title is None or title == "":
                 print("No title to skipping")
@@ -310,14 +311,14 @@ class BingSearchServer(SearchABC):
             if self.server.use_description_only:
                 content = title + ". "
                 if "snippet" in item :
-                    snippet = filter_html(item["snippet"])
+                    snippet = filter_special_chars(item["snippet"])
                     content += snippet
                     print(f"Adding webpage summary with title {title} for url {url}")
                     contents.append({'title': title, 'url': url, 'content': content})
 
                 elif "description" in item:
                     if news_count < 3:
-                        text = filter_html(item["description"])
+                        text = filter_special_chars(item["description"])
                         content += text
                         news_count += 1
                         contents.append({'title': title, 'url': url, 'content': content})
@@ -335,7 +336,7 @@ class BingSearchServer(SearchABC):
         else:
             return urls
 
-class GoogleSearchServer(SearchABC):
+class GoogleSearchRequestHandler(SearchABCRequestHandler):
     def search(self, q: str, n: int,
             subscription_key: str = None,
             use_description_only: bool = False
@@ -402,9 +403,9 @@ class Application:
             search_engine, use_description_only, subscription_key)
 
         if search_engine == "Bing":
-            request_handler = BingSearchServer
+            request_handler = BingSearchRequestHandler
         else:
-            request_handler = GoogleSearchServer
+            request_handler = GoogleSearchRequestHandler
 
         with SearchABCServer(
                 (hostname, int(port)), request_handler, 
@@ -457,16 +458,12 @@ class Application:
             subscription_key = None
         ) -> NoReturn:
 
-        global _REQUESTS_GET_TIMEOUT
-
         """ Creates a thin fake client to test a server that is already up.
         Expects a server to have already been started with `python search_server.py serve [options]`.
         Creates a retriever client the same way ParlAi client does it for its chat bot, then
         sends a query to the server.
         """
         host, port = _parse_host(host)
-
-        _REQUESTS_GET_TIMEOUT = requests_get_timeout
 
         print(f"Query: `{query}`")
         print(f"n: {n}")
