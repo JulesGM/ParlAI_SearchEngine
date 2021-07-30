@@ -448,15 +448,7 @@ class Application:
         """
         print(_get_and_parse(url))
 
-    def test_server(
-            self, host: str = _DEFAULT_HOST,
-            requests_get_timeout = _REQUESTS_GET_TIMEOUT,
-            strip_html_menus = False,
-            max_text_bytes = None,
-            search_engine = "Google",
-            use_description_only = False,
-            subscription_key = None
-        ) -> NoReturn:
+    def test_server(self, query: str, n: int, host : str = _DEFAULT_HOST) -> None:
 
         """ Creates a thin fake client to test a server that is already up.
         Expects a server to have already been started with `python search_server.py serve [options]`.
@@ -467,9 +459,6 @@ class Application:
 
         print(f"Query: `{query}`")
         print(f"n: {n}")
-
-        self.check_and_print_cmdline_args(max_text_bytes, strip_html_menus,
-            search_server, use_description_only, subscription_key)
 
         retriever = parlai.agents.rag.retrieve_api.SearchEngineRetriever(
             dict(
