@@ -13,8 +13,9 @@ alt="Shows lines with search results, the titles and the urls.">
 
 - Uses `html2text` to strip the markup out of the page.
 - Uses `beautifulsoup4` to parse the title.
-- Currently only uses the `googlesearch` module to query Google for urls, but is coded
-in a modular / search engine agnostic way to allow very easily add new search engine support.
+- Supports both Google (default) and Bing search, but is coded in a modular / search engine agnostic 
+way to allow very easily add new search engine support. Bing search requires a API subscription key, 
+which can be obtained for free at: https://www.microsoft.com/en-us/bing/apis/bing-entity-search-api
 
 
 Using the `googlesearch` module is very slow because it parses Google search webpages instead of querying cloud webservices. This is fine for playing with the model, but makes that searcher unusable for training or large scale inference purposes. In the paper, Bing cloud services are used, matching the results over Common Crawl instead of just downloading the page.
@@ -61,4 +62,45 @@ python search_server.py test_server --host 0.0.0.0:8080
 
 ```bash
 python search_server.py test_parser www.some_url_of_your_choice.com/
+```
+
+# Additional Command Line Parameters
+
+- requests_get_timeout - sets the timeout for URL requests to fetch content of URLs found during search. Defaults to 5 seconds.
+- strip_html_menus - removes likely HTML menus to clean up text. This returns significantly higher quality and informationally dense text. 
+- max_text_bytes limits the bytes returned per web page. Defaults to no max.  Note, ParlAI current defaults to only use the first 512 byte. 
+- search_engine set to "Google" default or "Bing". Note, the Bing Search engine was used in the Blenderbot2 paper to achieve their results.  This implementation not only uses web pages but also news, entities and places.
+- use_description_only are short but 10X faster since no url gets for Bing only. It also has the advantage of being very concise without an HTML irrelevant text normally returned.
+- use_subscription_key required to use Bing only. Can get a free one at: https://www.microsoft.com/en-us/bing/apis/bing-entity-search-api
+
+# Advanced Examples
+
+Google Search Engine returning more relevant information than the defaults:
+```bash
+python search_server.py serve --host 0.0.0.0:8080 --max_text_bytes 512 --requests_get_timeout 10 --strip_html_menus
+```
+
+Bing Search Engine:
+```bash
+python search_server.py serve --host 0.0.0.0:8080 --search_engine="Bing" --subscription_key "put your bing api subscription key here"
+```
+
+Bing Search Engine returning more relevant information:
+```bash
+python search_server.py serve --host 0.0.0.0:8080 --search_engine="Bing" --max_text_bytes=512 --requests_get_timeout 10 --strip_html_menus --subscription_key "put your bing api subscription key here"
+```
+
+Bing Search Engine returning very relevant concise information 10X faster:
+```bash
+python search_server.py serve --host 0.0.0.0:8080 --search_engine="Bing" --use_description_only --subscription_key "put your bing api subscription key here"
+```
+
+# Additional Command Line Example Test Calls
+
+```bash
+curl -X POST "http://0.0.0:8080" -d "q=Which%20team%20does%20Tom%20Brady%20play%20for%20now&n=6"
+```
+
+```bash
+curl -X POST "http://0.0.0:8080" -d "q=Where%20Are%20The%20Olympics%20Being%20Held%20in%202021&n=6"
 ```

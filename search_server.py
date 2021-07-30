@@ -149,14 +149,19 @@ class SearchABCRequestHandler(http.server.BaseHTTPRequestHandler):
                 reason_already_seen_content = (
                     maybe_content["content"] in dupe_detection_set
                 )
+                reason_content_forbidden = (
+                    maybe_content["content"] == "Forbidden"
+                )
             else:
                 reason_content_empty = False
                 reason_already_seen_content = False
-
+                reason_content_forbidden = False
+ 
             reasons = dict(
                 reason_empty_response=reason_empty_response,
                 reason_content_empty=reason_content_empty,
                 reason_already_seen_content=reason_already_seen_content,
+                reason_content_forbidden=reason_content_forbidden,
             )
 
             if not any(reasons.values()):
@@ -178,10 +183,9 @@ class SearchABCRequestHandler(http.server.BaseHTTPRequestHandler):
                 if self.server.strip_html_menus:
                     new_content = ""
                     for line in maybe_content['content'].splitlines():
-                        if line.find("*"): # Performance optimazation since regex is slow
-                            x = re.findall("^[\s]*\\* ", line)
-                            if not x or len(line) > 50:
-                                new_content += line + "\n"
+                        x = re.findall("^[\s]*\\* ", line)
+                        if line != "" and (not x or len(line) > 50):
+                            new_content += line + "\n"
 
                     maybe_content['content'] = filter_special_chars(new_content)
 
