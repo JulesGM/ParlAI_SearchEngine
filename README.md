@@ -90,7 +90,7 @@ Bing Search Engine returning more relevant information:
 python search_server.py serve --host 0.0.0.0:8080 --search_engine="Bing" --max_text_bytes=512 --requests_get_timeout 10 --strip_html_menus --subscription_key "put your bing api subscription key here"
 ```
 
-Bing Search Engine returning very relevant concise information 10X faster:
+Bing Search Engine returning very relevant concise information 10X faster. Returns a 250 to 350 byte web page summary per URL including the web page title:
 ```bash
 python search_server.py serve --host 0.0.0.0:8080 --search_engine="Bing" --use_description_only --subscription_key "put your bing api subscription key here"
 ```
