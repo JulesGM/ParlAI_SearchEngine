@@ -64,8 +64,6 @@ python search_server.py test_parser www.some_url_of_your_choice.com/
 ```
 <br>
 <br>
-<br>
-<br>
 
 
 ---
