@@ -62,9 +62,15 @@ python search_server.py test_server --host 0.0.0.0:8080
 ```bash
 python search_server.py test_parser www.some_url_of_your_choice.com/
 ```
+<br>
+<br>
+<br>
+<br>
 
 
-Shield: [![CC BY 4.0][cc-by-shield]][cc-by]
+---
+
+[![CC BY 4.0][cc-by-shield]][cc-by]
 
 This work is licensed under a
 [Creative Commons Attribution 4.0 International License][cc-by].
